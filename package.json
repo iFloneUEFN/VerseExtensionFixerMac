@@ -1,0 +1,76 @@
+{
+ "name": "verse-extension-fixer",
+ "displayName": "Verse Extension Fixer (Mac)",
+ "description": "Fix various stuff related to Verse programming language on Mac.",
+ "version": "0.0.1",
+ "publisher": "iflone",
+ "author": {
+  "name": "iFlone Studios"
+ },
+ "private": false,
+ "engines": {
+  "vscode": "^1.94.0"
+ },
+ "categories": [
+  "Other"
+ ],
+ "icon": "assets/icon.png",
+ "activationEvents": [
+  "onLanguage:json",
+  "onStartupFinished"
+ ],
+ "extensionDependencies": [
+  "epicgames.verse"
+ ],
+ "main": "./dist/extension.js",
+ "contributes": {
+    "configuration": {
+    "title": "Verse Extension Fixer (Mac): Settings",
+    "properties": {
+        "versePathFixer.bottleName": {
+        "type": "string",
+        "default": "Unreal Editor Fortnite",
+        "description": "Insert your UEFN CrossOver Bottle name here. It will help the extension to scan and find automatically correct paths. Respect uppercase, lowercase, space etc. Eg: You have a bottle named \"My Super Bottle\", you'll put it here as \"My Super Bottle\" and not as \"my_super_bottle\"."
+        },
+        "versePathFixer.removeVerseDefaultTheme": {
+        "type": "boolean",
+        "default": true,
+        "description": "Allow you to remove the annoying verse dark theme and apply your own."
+        },
+        "versePathFixer.fixVerseButtonInUEFN": {
+        "type": "boolean",
+        "default": false,
+        "description": "Allow you to fix the UEFN button within the UEFN app. This create an apple script that always run in the background and startup. The \"hack\" is basically instead of running the vscode.exe when pressing the verse button, its creating a temporary file, the apple script detect it then does the trick."
+        }
+    }
+    }
+ },
+ "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+ },
+ "devDependencies": {
+    "@types/mocha": "^10.0.8",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.7.0",
+    "@typescript-eslint/parser": "^8.7.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.11.1",
+    "npm-run-all": "^4.1.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2",
+    "vscode": "^1.1.34"
+ }
+}

@@ -1,0 +1,18 @@
+{
+	"compilerOptions": {
+		"module": "Node16",
+		"target": "ES2022",
+		"lib": [
+			"ES2022",
+			"DOM"   /* Include this if you're using browser APIs */
+		],
+		"sourceMap": true,
+		"rootDir": "src",
+		"outDir": "dist",
+		"strict": true,   /* enable all strict type-checking options */
+		//"noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
+		//"noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
+		//"noUnusedLocals": true,  /* Report errors on unused local variables. */
+		//"noUnusedParameters": true  /* Report errors on unused parameters. */
+	}
+}
