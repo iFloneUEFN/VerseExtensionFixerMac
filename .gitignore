@@ -1,0 +1,7 @@
+node_modules/**
+.yarnrc
+esbuild.js
+vsc-extension-quickstart.md
+**/.vscode-test.*
+.CHANGELOG.md
+**.vsix
