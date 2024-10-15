@@ -1,18 +1,12 @@
 {
-	"compilerOptions": {
-		"module": "Node16",
-		"target": "ES2022",
-		"lib": [
-			"ES2022",
-			"DOM"   /* Include this if you're using browser APIs */
-		],
-		"sourceMap": true,
-		"rootDir": "src",
-		"outDir": "dist",
-		"strict": true,   /* enable all strict type-checking options */
-		//"noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
-		//"noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
-		//"noUnusedLocals": true,  /* Report errors on unused local variables. */
-		//"noUnusedParameters": true  /* Report errors on unused parameters. */
-	}
-}
+    "compilerOptions": {
+      "target": "ES2020", // or the version you are targeting
+      "module": "commonjs", // or "esnext" based on your setup
+      "strict": true, // enables all strict type-checking options
+      "esModuleInterop": true, // allows default imports from modules with no default export
+      "skipLibCheck": true, // skips type checking of declaration files
+      "forceConsistentCasingInFileNames": true // ensure consistent file casing
+    },
+    "include": ["src/**/*"], // or adjust this to point to your source files
+    "exclude": ["node_modules", "**/*.spec.ts"] // exclude test files and node_modules
+  }
