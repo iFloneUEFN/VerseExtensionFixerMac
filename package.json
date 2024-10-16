@@ -2,7 +2,7 @@
  "name": "verse-extension-fixer",
  "displayName": "Verse Extension Fixer (Mac)",
  "description": "Fix various stuff related to Verse programming language on Mac.",
- "version": "0.1.1",
+ "version": "0.1.2",
  "publisher": "iflone",
  "author": {
   "name": "iFlone Studios"

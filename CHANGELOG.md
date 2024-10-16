@@ -1,5 +1,9 @@
 # Change Log
 
+## Release: 0.1.2
+
+- Added license.
+
 ## Release: 0.1.1
 
 - Added source code on GitHub.
