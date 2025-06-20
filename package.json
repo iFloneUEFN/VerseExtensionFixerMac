@@ -1,8 +1,8 @@
 {
- "name": "verse-macos",
+ "name": "verse-extension-fixer",
  "displayName": "Verse for MacOS",
  "description": "Brings seamless Verse language support to macOS, addressing compatibility issues and improving the development workflow with UEFN through CrossOver.",
- "version": "1.0.0",
+ "version": "1.0.2",
  "publisher": "iFlone",
  "author": {
   "name": "iFlone Studios"
@@ -54,7 +54,7 @@
     "verse-macos.fixVerseButton": {
      "type": "boolean",
      "default": false,
-     "description": "This option fixes the Verse button functionality inside the UEFN app on macOS. This option works by creating an AppleScript that runs silently in the background and starts up automatically. Instead of launching vscode.exe directly when the Verse button is clicked, it creates a temporary signal file. The AppleScript detects this file and handles the required logic behind the scenes — effectively performing the \"hack\" to bridge macOS with UEFN’s Windows-oriented behavior without even you noticing anything. To delete this, disable the box."
+     "description": "This option fixes the Verse button functionality inside the UEFN app on macOS. This option works by creating an AppleScript named \"Verse Monitor\" that runs silently in the background and starts up automatically. Instead of launching vscode.exe directly when the Verse button is clicked, it creates a temporary signal file. The AppleScript detects this file and handles the required logic behind the scenes — effectively performing the \"hack\" to bridge macOS with UEFN’s Windows-oriented behavior without even you noticing anything. To delete this, disable the box."
     },
     "verse-macos.revertWindowsPathApp": {
      "type": "boolean",
