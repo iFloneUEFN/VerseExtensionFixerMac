@@ -34,6 +34,9 @@ You must have installed the `verse` vsix extension from Epic Games, else this 
 ## Features
 
 - Automatically make the Verse extension compatible for Mac
+- Automatically detects your UEFN CrossOver bottle by checking for the
+  `Program Files/Epic Games/Fortnite` folder and prompts you when multiple
+  bottles are found
 - Solves UEFN-generated Windows paths in workspace files.
 - Fix the verse button within UEFN so it can run Visual Studio Code with the current opened project.
 - Allows you to remove the default Verse dark theme and apply your own.

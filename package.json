@@ -2,7 +2,7 @@
  "name": "verse-extension-fixer",
  "displayName": "Verse Extension Fixer (Mac)",
  "description": "Fix various stuff related to Verse programming language on Mac.",
- "version": "0.1.2",
+  "version": "0.1.5",
  "publisher": "iflone",
  "author": {
   "name": "iFlone Studios"
@@ -46,11 +46,6 @@
   "configuration": {
    "title": "Verse Extension Fixer (Mac): Settings",
    "properties": {
-    "verseExtensionFixer.bottleName": {
-     "type": "string",
-     "default": "",
-     "description": "Insert your UEFN CrossOver Bottle name here. It will help the extension to scan and find automatically correct paths. Respect uppercase, lowercase, space etc. Eg: You have a bottle named \"My Super Bottle\", you'll put it here as \"My Super Bottle\" and not as \"my_super_bottle\"."
-    },
     "verseExtensionFixer.removeVerseDefaultTheme": {
      "type": "boolean",
      "default": false,

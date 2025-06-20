@@ -5,6 +5,47 @@ import {exec} from "child_process";
 import * as rf from 'fs';
 import * as fs from 'fs/promises';
 
+let bottleNameGlobal: string | undefined;
+
+async function detectBottleName(context: vscode.ExtensionContext): Promise<string | undefined> {
+    const stored = context.globalState.get<string>('detectedBottle');
+    const baseDir = path.join(os.homedir(), 'Library', 'Application Support', 'CrossOver', 'Bottles');
+    const hasFortnite = (dir: string): boolean => {
+        const driveC = path.join(baseDir, dir, 'drive_c');
+        const fortniteDirs = [
+            path.join(driveC, 'Program Files', 'Epic Games', 'Fortnite'),
+            path.join(driveC, 'Program Files (x86)', 'Epic Games', 'Fortnite'),
+        ];
+        return fortniteDirs.some(folder => rf.existsSync(folder));
+    };
+
+    if (stored && hasFortnite(stored)) {
+        return stored;
+    }
+    try {
+        const entries = await fs.readdir(baseDir, { withFileTypes: true });
+        const candidates = entries
+            .filter(e => e.isDirectory() && hasFortnite(e.name))
+            .map(e => e.name);
+        if (candidates.length === 1) {
+            await context.globalState.update('detectedBottle', candidates[0]);
+            return candidates[0];
+        }
+        if (candidates.length > 1) {
+            const picked = await vscode.window.showQuickPick(candidates, { placeHolder: 'Select your Fortnite bottle' });
+            if (picked) {
+                await context.globalState.update('detectedBottle', picked);
+                return picked;
+            }
+        } else {
+            vscode.window.showErrorMessage('Could not detect your Fortnite bottle.');
+        }
+    } catch (err) {
+        vscode.window.showErrorMessage(`Error detecting bottle: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    return undefined;
+}
+
 interface PackageSettings {
     versePath: string;
     verseScope: string;
@@ -54,7 +95,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const document = await vscode.workspace.openTextDocument(workspaceFilePath);
 
     if (folderUri.startsWith(basePath)) {
-        const bottleName = vscode.workspace.getConfiguration('verseExtensionFixer').get<string>('bottleName');
+        bottleNameGlobal = await detectBottleName(context);
         const fixVerseButton = vscode.workspace.getConfiguration('verseExtensionFixer').get<boolean>('fixVerseButtonInUEFN');
         const rwp = vscode.workspace.getConfiguration('verseExtensionFixer').get<boolean>('revertWorkspacesWindowsPaths');
         if (fixVerseButton === true){
@@ -69,8 +110,8 @@ export async function activate(context: vscode.ExtensionContext) {
         else{
             await deleteRWPApp();
         }
-        if (!bottleName || bottleName.trim() === "") {
-            vscode.window.showErrorMessage('Please enter your bottle name in the settings then restart Visual Studio Code.');
+        if (!bottleNameGlobal) {
+            vscode.window.showErrorMessage('Could not determine your Fortnite bottle.');
             return;
         }
         if (projectName) {
@@ -78,7 +119,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 await fixVerseTheme(document);
                 const username = os.userInfo().username;
                 const vprojectFileName = `${projectName}.vproject`;
-                const vprojectPath = path.join(`/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleName}/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject/${projectName}/vproject/${vprojectFileName}`);
+                const vprojectPath = path.join(`/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleNameGlobal}/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject/${projectName}/vproject/${vprojectFileName}`);
                 const fileContent = await fs.readFile(vprojectPath, 'utf-8');
                 let vprojectData: VProjectData = JSON.parse(fileContent);
                 vprojectData.packages.forEach(pkg => {
@@ -91,7 +132,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     }
                 });
                 const workspacePathName = `FortniteGame.code-workspace`;
-                const workspacePath = path.join(`/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleName}/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject/${workspacePathName}`);
+                const workspacePath = path.join(`/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleNameGlobal}/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject/${workspacePathName}`);
                 const fileContentWS = await fs.readFile(workspacePath, 'utf-8');
                 let workspaceData: WorkspaceData = JSON.parse(fileContentWS);
                 const oldBasePath = `C:/users/`;
@@ -190,9 +231,9 @@ async function fixVerseTheme(document: vscode.TextDocument) {
 }
 async function modifyWorkspaceFile(document: vscode.TextDocument) {
     const username = os.userInfo().username;
-    const bottleName = vscode.workspace.getConfiguration('verseExtensionFixer').get<string>('bottleName');
-    if (!bottleName || bottleName.trim() === "") {
-        vscode.window.showErrorMessage('Please enter your bottle name in the settings then restart Visual Studio Code.');
+    const bottleName = bottleNameGlobal;
+    if (!bottleName) {
+        vscode.window.showErrorMessage('Could not determine your Fortnite bottle.');
         return;
     }
     const text = document.getText();
@@ -241,12 +282,12 @@ async function modifyWorkspaceFile(document: vscode.TextDocument) {
         edit.set(document.uri, edits);
         await vscode.workspace.applyEdit(edit);
         try {
-            await modifyProjectVProjectFile(username, bottleName, projectName);
+            await modifyProjectVProjectFile(username, projectName);
         } catch (error) {
             vscode.window.showErrorMessage(`Error modifying VProject file: ${error instanceof Error ? error.message : String(error)}`);
         }
         try {
-            await modifyFortniteGameWorkspaceFile(username, bottleName);
+            await modifyFortniteGameWorkspaceFile(username);
         } catch (error) {
             vscode.window.showErrorMessage(`Error modifying FortniteGame workspace file: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -254,15 +295,15 @@ async function modifyWorkspaceFile(document: vscode.TextDocument) {
         await vscode.commands.executeCommand('workbench.action.reloadWindow');
     }
 }
-async function modifyProjectVProjectFile(username: string, bottleName: string, projectName: string) {
+async function modifyProjectVProjectFile(username: string, projectName: string) {
     const vprojectFileName = `${projectName}.vproject`;
     const vprojectPath = path.join(
-        `/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleName}/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject/${projectName}/vproject/${vprojectFileName}`
+        `/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleNameGlobal}/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject/${projectName}/vproject/${vprojectFileName}`
     );
     try {
         const fileContent = await fs.readFile(vprojectPath, 'utf-8');
         let vprojectData: VProjectData = JSON.parse(fileContent);
-        const normalizedBasePath = `/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleName}/drive_c/users/crossover`;
+        const normalizedBasePath = `/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleNameGlobal}/drive_c/users/crossover`;
         vprojectData.packages.forEach(pkg => {
             if (pkg.desc && pkg.desc.dirPath) {
                 if (pkg.desc.dirPath.startsWith('C:/users/crossover/Documents/')) {
@@ -278,7 +319,12 @@ async function modifyProjectVProjectFile(username: string, bottleName: string, p
         vscode.window.showErrorMessage(`Error modifying ${vprojectFileName} file: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
-async function modifyFortniteGameWorkspaceFile(username: string, bottleName: string) {
+async function modifyFortniteGameWorkspaceFile(username: string) {
+    const bottleName = bottleNameGlobal;
+    if (!bottleName) {
+        vscode.window.showErrorMessage('Could not determine your Fortnite bottle.');
+        return;
+    }
     const workspacePathName = `FortniteGame.code-workspace`;
     const workspacePath = path.join(
         `/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleName}/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject/${workspacePathName}`
@@ -290,7 +336,7 @@ async function modifyFortniteGameWorkspaceFile(username: string, bottleName: str
         if (Array.isArray(workspaceData.folders)) {
             workspaceData.folders.forEach(folder => {
                 if (folder.path && folder.path.startsWith(oldBasePath)) {
-                    const normalizedBasePath = `/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleName}/drive_c/users/crossover`;
+                    const normalizedBasePath = `/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleNameGlobal}/drive_c/users/crossover`;
                     const pathPrefix = folder.path.startsWith('C:/users/crossover')
                         ? 'C:/users/crossover'
                         : 'C:/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject';
@@ -307,9 +353,9 @@ async function modifyFortniteGameWorkspaceFile(username: string, bottleName: str
 }
 async function fixUrcAndVerseExtensions() {
     const username = os.userInfo().username;
-    const bottleName = vscode.workspace.getConfiguration('verseExtensionFixer').get<string>('bottleName');
-    if (!bottleName || bottleName.trim() === "") {
-        vscode.window.showErrorMessage('Please enter your bottle name in the settings then restart Visual Studio Code.');
+    const bottleName = bottleNameGlobal;
+    if (!bottleName) {
+        vscode.window.showErrorMessage('Could not determine your Fortnite bottle.');
         return;
     }
     const extensionsPath = path.join(`/Users/${username}/.vscode/extensions/`);
@@ -345,9 +391,9 @@ async function fixUrcAndVerseExtensions() {
 }
 async function createVSCodeFolder() {
     const username = os.userInfo().username;
-    const bottleName = vscode.workspace.getConfiguration('verseExtensionFixer').get<string>('bottleName');
-    if (!bottleName || bottleName.trim() === "") {
-        vscode.window.showErrorMessage('Please enter your bottle name in the settings then restart Visual Studio Code.');
+    const bottleName = bottleNameGlobal;
+    if (!bottleName) {
+        vscode.window.showErrorMessage('Could not determine your Fortnite bottle.');
         return;
     }
     const baseDir = path.join('/Users', username, 'Library', 'Application Support', 'CrossOver', 'Bottles', `${bottleName}`, 'drive_c', 'Program Files');
@@ -393,7 +439,11 @@ async function createVerseMonitorApp() {
     const userHome = process.env.HOME || '';
     const username = os.userInfo().username;
     await createVSCodeFolder();
-    const bottleName = vscode.workspace.getConfiguration('verseExtensionFixer').get<string>('bottleName');
+    const bottleName = bottleNameGlobal;
+    if (!bottleName) {
+        vscode.window.showErrorMessage('Could not determine your Fortnite bottle.');
+        return;
+    }
     const scriptDestination = path.join('Applications', scriptName);
     const appDestination = path.join('Applications', appName);
     const plistPath = path.join(userHome, 'Library', 'LaunchAgents', plistName);
@@ -561,7 +611,11 @@ async function createRWPApp(document: vscode.TextDocument) {
     const appName = 'RWP.app';
     const userHome = process.env.HOME || '';
     const username = os.userInfo().username;
-    const bottleName = vscode.workspace.getConfiguration('verseExtensionFixer').get('bottleName');
+    const bottleName = bottleNameGlobal;
+    if (!bottleName) {
+        vscode.window.showErrorMessage('Could not determine your Fortnite bottle.');
+        return;
+    }
     const scriptDestination = path.join('Applications', scriptName);
     const appDestination = path.join('Applications', appName);
     const appSupportDir = path.dirname(scriptDestination);

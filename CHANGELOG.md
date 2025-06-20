@@ -1,5 +1,18 @@
 # Change Log
 
+## Release: 0.1.5
+
+- Refined bottle detection logic with a dedicated helper that checks for the
+  Fortnite folder inside each bottle.
+
+## Release: 0.1.4
+
+- Improved Fortnite bottle detection by verifying the actual Fortnite folder inside each bottle.
+
+## Release: 0.1.3
+
+- Automatically detect the UEFN CrossOver bottle and prompt to select when multiple bottles are found.
+
 ## Release: 0.1.2
 
 - Added license.
