@@ -118,8 +118,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Paths related stuff
     const basePath = path.join(userHome, 'Documents', 'Fortnite Projects');
-    const folder = workspaceFolders[0];
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (!folder) {
+        return;
+    }
     const folderUri = folder.uri.fsPath;
+    if (!folderUri.startsWith(basePath)) {
+        return;
+    }
     const relativePath = folderUri.replace(basePath, '');
     let projectName = relativePath.split(path.sep)[1];
     const workspaceFilePath = path.join(basePath, projectName, 'Plugins', projectName, `${projectName}.code-workspace`);
@@ -130,6 +136,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage(`Unable to open workspace file: ${workspaceFilePath}`);
         return;
     }
+    
     // Get boxes values
     const verseTheme = vscode.workspace.getConfiguration('verse-macos').get<boolean>('removeVerseDefaultTheme');
     const verseButton = vscode.workspace.getConfiguration('verse-macos').get<boolean>('fixVerseButton');
@@ -574,7 +581,8 @@ async function fixVerseButton() {
     }
     const appleScriptContent = `  
 on idle
-	set triggerFile to "/Users/${username}/trigger_open_vscode.txt"
+    set USERNAME to do shell script "whoami"
+    set triggerFile to "/Users/" & USERNAME & "/trigger_open_vscode.txt"
 	if (do shell script "test -e " & quoted form of triggerFile & " && echo true || echo false") is "true" then
 		set USERNAME to do shell script "whoami"
 		set bottleName to "${bottleName}"
