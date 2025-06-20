@@ -33,13 +33,6 @@ interface WorkspaceData {
     folders: WorkspaceFolder[];
     settings?: any;
 }
-interface FakePathInfo {
-    originalContent: string;
-    fakeContent: string;
-    originalWorkspace: string;
-    fakeWorkspace: string;
-    projectName: string;
-}
 // Global bottle name instead of the manual one
 let bottleNameGlobal: string | undefined;
 
@@ -128,18 +121,19 @@ export async function activate(context: vscode.ExtensionContext) {
     const folder = workspaceFolders[0];
     const folderUri = folder.uri.fsPath;
     const relativePath = folderUri.replace(basePath, '');
-    const projectName = relativePath.split(path.sep)[1];
-    const fakeInfo = context.globalState.get<FakePathInfo>('fakePathInfo');
-    const workspaceFilePath = (fakeInfo && fakeInfo.fakeWorkspace && rf.existsSync(fakeInfo.fakeWorkspace))
-        ? fakeInfo.fakeWorkspace
-        : path.join(basePath, projectName, 'Plugins', projectName, `${projectName}.code-workspace`);
-    const document = await vscode.workspace.openTextDocument(workspaceFilePath);
-    
+    let projectName = relativePath.split(path.sep)[1];
+    const workspaceFilePath = path.join(basePath, projectName, 'Plugins', projectName, `${projectName}.code-workspace`);
+    let document: vscode.TextDocument;
+    try {
+        document = await vscode.workspace.openTextDocument(workspaceFilePath);
+    } catch {
+        vscode.window.showErrorMessage(`Unable to open workspace file: ${workspaceFilePath}`);
+        return;
+    }
     // Get boxes values
     const verseTheme = vscode.workspace.getConfiguration('verse-macos').get<boolean>('removeVerseDefaultTheme');
     const verseButton = vscode.workspace.getConfiguration('verse-macos').get<boolean>('fixVerseButton');
     const rwp = vscode.workspace.getConfiguration('verse-macos').get<boolean>('revertWindowsPathApp');
-    const fakePath = vscode.workspace.getConfiguration('verse-macos').get<boolean>('createFakePath');
 
     // Checking if the Fortnite Projects folder is available
     if (folderUri.startsWith(basePath)) {
@@ -169,74 +163,68 @@ export async function activate(context: vscode.ExtensionContext) {
         else {
             removeVerseTheme(document);
         }
-        // Apply fake path if applicable
-        if (fakePath === true){
-            await handleFakePath(context, projectName, workspaceFilePath, basePath);
-        }
-        else {
-            // Check if the project name exist
-            if (projectName) {
-                try {
-                    const username = os.userInfo().username;
-                    const baseDir = `/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleNameGlobal}/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject`;
-                    // URI checkers
-                    const shouldPatchPath = (dirPath: string) =>
-                        dirPath?.startsWith('C:/users/crossover/') || dirPath?.startsWith('C:/users/');
-                    // Trigger fix
-                    const triggerFix = async () => {
-                        // Fix verse/urc extensions
-                        await fixUrcAndVerseExtensions();
-                        // Try editing the workspace file!
-                        await modifyWorkspaceFile(document, projectName);
-                        //Try editing the VProject file paths now!
-                        await modifyProjectVProjectFile(username, projectName);
-                        //Try editing the FortniteGame workspace file paths now!
-                        await modifyFortniteGameWorkspaceFile(username);
-                        // Reload once it's done!
-                        await vscode.commands.executeCommand('workbench.action.reloadWindow');
-                    };
-                    // Check .vproject file
-                    const vprojectFile = path.join(baseDir, projectName, 'vproject', `${projectName}.vproject`);
-                    const vprojectContent = await fs.readFile(vprojectFile, 'utf-8');
-                    const vprojectData: VProjectData = JSON.parse(vprojectContent);
+        // Check if the project name exist
+        if (projectName) {
+            try {
+                const username = os.userInfo().username;
+                const baseDir = `/Users/${username}/Library/Application Support/CrossOver/Bottles/${bottleNameGlobal}/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject`;
+                // URI checkers
+                const shouldPatchPath = (dirPath: string) =>
+                    dirPath?.startsWith('C:/users/crossover/') || dirPath?.startsWith('C:/users/');
+                // Trigger fix
+                const triggerFix = async () => {
+                    // Fix verse/urc extensions
+                    await fixUrcAndVerseExtensions();
+                    // Try editing the workspace file!
+                    await modifyWorkspaceFile(document, projectName);
+                    //Try editing the VProject file paths now!
+                    await modifyProjectVProjectFile(username, projectName);
+                    //Try editing the FortniteGame workspace file paths now!
+                    await modifyFortniteGameWorkspaceFile(username);
+                    // Reload once it's done!
+                    await vscode.commands.executeCommand('workbench.action.reloadWindow');
+                };
+                // Check .vproject file
+                const vprojectFile = path.join(baseDir, projectName, 'vproject', `${projectName}.vproject`);
+                const vprojectContent = await fs.readFile(vprojectFile, 'utf-8');
+                const vprojectData: VProjectData = JSON.parse(vprojectContent);
 
-                    if (vprojectData.packages.some(pkg => shouldPatchPath(pkg.desc?.dirPath))) {
-                        return triggerFix();
-                    }
-                    // Check workspace file
-                    const workspaceFile = path.join(baseDir, 'FortniteGame.code-workspace');
-                    const workspaceContent = await fs.readFile(workspaceFile, 'utf-8');
-                    const workspaceData: WorkspaceData = JSON.parse(workspaceContent);
-
-                    if (workspaceData.folders?.some(folder => shouldPatchPath(folder.path))) {
-                        return triggerFix();
-                    }
-                    // Check currently open document
-                    const text = document.getText();
-                    let jsonData;
-                    try {
-                        jsonData = JSON.parse(text);
-                    } catch {
-                        return vscode.window.showErrorMessage('Error parsing the workspace file as JSON, make sure it\'s valid.');
-                    }
-
-                    if (jsonData.folders?.some((folder: any) => shouldPatchPath(folder.path))) {
-                        return triggerFix();
-                    }
-                } catch (err) {
-                    vscode.window.showErrorMessage(`Unknown Error: ${err}`);
+                if (vprojectData.packages.some(pkg => shouldPatchPath(pkg.desc?.dirPath))) {
+                    return triggerFix();
                 }
+                // Check workspace file
+                const workspaceFile = path.join(baseDir, 'FortniteGame.code-workspace');
+                const workspaceContent = await fs.readFile(workspaceFile, 'utf-8');
+                const workspaceData: WorkspaceData = JSON.parse(workspaceContent);
+
+                if (workspaceData.folders?.some(folder => shouldPatchPath(folder.path))) {
+                    return triggerFix();
+                }
+                // Check currently open document
+                const text = document.getText();
+                let jsonData;
+                try {
+                    jsonData = JSON.parse(text);
+                } catch {
+                    return vscode.window.showErrorMessage('Error parsing the workspace file as JSON, make sure it\'s valid.');
+                }
+
+                if (jsonData.folders?.some((folder: any) => shouldPatchPath(folder.path))) {
+                    return triggerFix();
+                }
+            } catch (err) {
+                vscode.window.showErrorMessage(`Unknown Error: ${err}`);
             }
-            // Project isn't completely loaded
-            else {
-                vscode.window
-                    .showInformationMessage('Project not initialized. It looks like your project hasn’t been set up yet. Please ensure that Fortnite is installed and that you’ve opened your project at least once in UEFN before using this extension.', 'Reload')
-                    .then(selection => {
-                        if (selection === 'Reload') {
-                            vscode.commands.executeCommand('workbench.action.reloadWindow');
-                        }
-                });
-            }
+        }
+        // Project isn't completely loaded
+        else {
+            vscode.window
+                .showInformationMessage('Project not initialized. It looks like your project hasn’t been set up yet. Please ensure that Fortnite is installed and that you’ve opened your project at least once in UEFN before using this extension.', 'Reload')
+                .then(selection => {
+                    if (selection === 'Reload') {
+                        vscode.commands.executeCommand('workbench.action.reloadWindow');
+                    }
+            });
         }
     }
     // Unable to find the Fortnite Projects folder
@@ -857,66 +845,5 @@ end try
     if (rf.existsSync(scriptDestination)) {
         rf.unlinkSync(scriptDestination);
     }
-}
-async function handleFakePath(context: vscode.ExtensionContext, projectName: string, workspaceFilePath: string, basePath: string) {
-    const info = context.globalState.get<FakePathInfo>('fakePathInfo');
-    if (!info) {
-        const originalContent = path.join(basePath, projectName, 'Plugins', projectName, 'Content');
-        const originalWorkspace = workspaceFilePath;
-        const fakeRoot = path.join(basePath, `${projectName}_00fake`);
-        const fakeContent = path.join(fakeRoot, 'Plugins', projectName, 'Content');
-        const fakeWorkspace = path.join(fakeRoot, 'Plugins', projectName, `${projectName}.code-workspace`);
-        await fs.mkdir(fakeContent, { recursive: true });
-        await fs.cp(originalContent, fakeContent, { recursive: true });
-        await fs.mkdir(path.dirname(fakeWorkspace), { recursive: true });
-        await fs.copyFile(originalWorkspace, fakeWorkspace);
-        const newInfo: FakePathInfo = {
-            originalContent,
-            fakeContent,
-            originalWorkspace,
-            fakeWorkspace,
-            projectName,
-        };
-        await context.globalState.update('fakePathInfo', newInfo);
-        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(fakeWorkspace), false);
-        return;
-    }
-    const doc = await vscode.workspace.openTextDocument(info.fakeWorkspace);
-    await modifyWorkspaceFile(doc, info.projectName);
-    setupFakeWatchers(context, info);
-}
-function setupFakeWatchers(context: vscode.ExtensionContext, info: FakePathInfo) {
-    const copyBack = async (src: string) => {
-        const rel = path.relative(info.fakeContent, src);
-        const dest = path.join(info.originalContent, rel);
-        try {
-            const stat = await fs.lstat(src);
-            if (stat.isDirectory()) {
-                await fs.mkdir(dest, { recursive: true });
-            } else {
-                await fs.copyFile(src, dest);
-            }
-        } catch {}
-    };
-    const removeOriginal = async (src: string) => {
-        const rel = path.relative(info.fakeContent, src);
-        const dest = path.join(info.originalContent, rel);
-        await fs.rm(dest, { recursive: true, force: true });
-    };
-    const watcher = rf.watch(info.fakeContent, { recursive: true }, (event, filename) => {
-        if (!filename) { return; }
-        const filePath = path.join(info.fakeContent, filename);
-        if (event === 'rename') {
-            fs.stat(filePath).then(() => copyBack(filePath), () => removeOriginal(filePath));
-        } else if (event === 'change') {
-            copyBack(filePath);
-        }
-    });
-    context.subscriptions.push({ dispose: () => watcher.close() });
-
-    const wsWatcher = rf.watch(info.fakeWorkspace, () => {
-        fs.copyFile(info.fakeWorkspace, info.originalWorkspace).catch(() => {});
-    });
-    context.subscriptions.push({ dispose: () => wsWatcher.close() });
 }
 export function deactivate() {}
