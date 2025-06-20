@@ -1,4 +1,11 @@
 # Change Log
+## Release: 0.1.3
+
+- Fixed paths bug / infinite reloading
+- Automatically detect the UEFN CrossOver bottle and prompt to select when multiple bottles are found. No need to insert one anymore!
+- Fixed verse monitor not being deleted even after being disabled.
+- Added reload option after changing settings (no need to disable anymore yipee!)
+- Renamed the extension to "Verse for MacOS"
 
 ## Release: 0.1.2
 
