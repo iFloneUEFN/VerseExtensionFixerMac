@@ -56,15 +56,10 @@
      "default": false,
      "description": "This option fixes the Verse button functionality inside the UEFN app on macOS. This option works by creating an AppleScript that runs silently in the background and starts up automatically. Instead of launching vscode.exe directly when the Verse button is clicked, it creates a temporary signal file. The AppleScript detects this file and handles the required logic behind the scenes — effectively performing the \"hack\" to bridge macOS with UEFN’s Windows-oriented behavior without even you noticing anything. To delete this, disable the box."
     },
-    "verse-macos.createFakePath": {
-     "type": "boolean",
-     "default": false,
-     "description": "Instead of modifying your original project files directly, this option creates a separate folder and copies your Verse files into it. All Unix path changes are made within this mirrored folder, while the extension ensures that changes still sync back to your original files. This method provides a safer way to work with path conversions and avoids issues (such as the verse explorer not working anymore) that can arise from editing your main files directly. Keeping this option disabled will require you to enable RWP to avoid UEFN crashing on launch."
-    },
     "verse-macos.revertWindowsPathApp": {
      "type": "boolean",
-     "default": false,
-     "description": "[Optional] This option createa a helper app designed for situations where you don’t have the \"Create Fake Path\" option enabled and want to avoid restarting UEFN twice after it has already been launched. It allows you to manually revert Unix-style paths back to Windows-style paths in your workspace files after a reboot — helping you skip the need to restart UEFN again. The app does not run in the background and must be launched manually. You'll find it in your Applications folder — consider pinning it to your Dock for quick access."
+     "default": true,
+     "description": "[Optional] This option create a helper app designed to avoid restarting UEFN twice after it has already been launched. It allows you to manually revert Unix-style paths back to Windows-style paths in your workspace files after a reboot — helping you skip the need to restart UEFN again. The app does not run in the background and must be launched manually. You'll find it in your Applications folder — consider pinning it to your Dock for quick access."
     }
    }
   }
