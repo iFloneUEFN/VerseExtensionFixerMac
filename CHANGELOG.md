@@ -1,5 +1,11 @@
 # Change Log
-## Release: 0.1.3
+## Release: 1.0.2
+- OOPS. Fixed an issue again preventing the Verse monitor from being deleted if the workspace folder wasn't a valid Fortnite workspace beforehand.
+
+## Release: 1.0.1
+- Fixed a popup showing whenever any workspace is opened, even non fortnite ones.
+
+## Release: 1.0.0
 
 - Fixed paths bug / infinite reloading
 - Automatically detect the UEFN CrossOver bottle and prompt to select when multiple bottles are found. No need to insert one anymore!
