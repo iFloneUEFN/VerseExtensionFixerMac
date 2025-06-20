@@ -33,6 +33,13 @@ interface WorkspaceData {
     folders: WorkspaceFolder[];
     settings?: any;
 }
+interface FakePathInfo {
+    originalContent: string;
+    fakeContent: string;
+    originalWorkspace: string;
+    fakeWorkspace: string;
+    projectName: string;
+}
 // Global bottle name instead of the manual one
 let bottleNameGlobal: string | undefined;
 
@@ -122,10 +129,12 @@ export async function activate(context: vscode.ExtensionContext) {
     const folderUri = folder.uri.fsPath;
     const relativePath = folderUri.replace(basePath, '');
     const projectName = relativePath.split(path.sep)[1];
-    const workspaceFilePath = path.join(basePath, projectName, 'Plugins', projectName, `${projectName}.code-workspace`);
+    const fakeInfo = context.globalState.get<FakePathInfo>('fakePathInfo');
+    const workspaceFilePath = (fakeInfo && fakeInfo.fakeWorkspace && rf.existsSync(fakeInfo.fakeWorkspace))
+        ? fakeInfo.fakeWorkspace
+        : path.join(basePath, projectName, 'Plugins', projectName, `${projectName}.code-workspace`);
     const document = await vscode.workspace.openTextDocument(workspaceFilePath);
-  
-
+    
     // Get boxes values
     const verseTheme = vscode.workspace.getConfiguration('verse-macos').get<boolean>('removeVerseDefaultTheme');
     const verseButton = vscode.workspace.getConfiguration('verse-macos').get<boolean>('fixVerseButton');
@@ -162,7 +171,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         // Apply fake path if applicable
         if (fakePath === true){
-            
+            await handleFakePath(context, projectName, workspaceFilePath, basePath);
         }
         else {
             // Check if the project name exist
@@ -774,6 +783,63 @@ set verseProjectDir to "/Users/" & username & "/Library/Application Support/Cros
 set fortniteBaseWorkspace to "/Users/" & username & "/Library/Application Support/CrossOver/Bottles/" & bottleName & "/drive_c/users/crossover/AppData/Local/UnrealEditorFortnite/Saved/VerseProject/FortniteGame.code-workspace"
 set findCommandProjects to "/usr/bin/find " & quoted form of fortniteProjectsDir & " -type d -mindepth 1 -maxdepth 1 -exec basename {} \\\\;"
 set findCommandVerseProject to "/usr/bin/find " & quoted form of verseProjectDir & " -type d -mindepth 1 -maxdepth 1 -not -name \\"FortniteGame\\" -exec basename {} \\\\;"
+set folderList to paragraphs of (do shell script findCommandProjects)
+set folderListVerse to paragraphs of (do shell script findCommandVerseProject)
+set projectsNames to {}
+set projectsNamesVerse to {}
+
+on replaceString(theString, searchString, replaceString)
+    set oldDelimiters to AppleScript's text item delimiters
+    set AppleScript's text item delimiters to searchString
+    set textItems to text items of theString
+    set AppleScript's text item delimiters to replaceString
+    set newString to textItems as string
+    set AppleScript's text item delimiters to oldDelimiters
+    return newString
+end replaceString
+
+repeat with folderName in folderList
+    if folderName is not "" and folderName does not contain "_00fake" then
+        set end of projectsNames to folderName
+    end if
+end repeat
+
+repeat with folderNameVerse in folderListVerse
+    if folderNameVerse is not "" and folderNameVerse does not contain "_00fake" then
+        set end of projectsNamesVerse to folderNameVerse
+    end if
+end repeat
+
+repeat with name in projectsNames
+    set workspaceFilePath to fortniteProjectsDir & "/" & name & "/Plugins/" & name & "/" & name & ".code-workspace"
+    try
+        set fileContent to read POSIX file workspaceFilePath
+        set updatedContent to replaceString(fileContent, "/Users/" & username & "/Documents/", "C:/users/crossover/Documents/")
+        set updatedContent to replaceString(updatedContent, "/Users/" & username & "/Library/Application Support/CrossOver/Bottles/" & bottleName & "/drive_c/", "C:/")
+        set fileRef to open for access POSIX file workspaceFilePath with write permission
+        set eof of fileRef to 0
+        write updatedContent to fileRef starting at eof
+        close access fileRef
+    on error errMsg
+        display dialog "Error processing file " & workspaceFilePath & ": " & errMsg
+    end try
+end repeat
+
+repeat with name in projectsNamesVerse
+    set workspaceFilePathVerse to verseProjectDir & "/" & name & "/vproject/" & name & ".vproject"
+    try
+        set fileContent to read POSIX file workspaceFilePathVerse
+        set updatedContent to replaceString(fileContent, "/Users/" & username & "/Documents/", "C:/users/crossover/Documents/")
+        set updatedContent to replaceString(updatedContent, "/Users/" & username & "/Library/Application Support/CrossOver/Bottles/" & bottleName & "/drive_c/", "C:/")
+        set fileRef to open for access POSIX file workspaceFilePathVerse with write permission
+        set eof of fileRef to 0
+        write updatedContent to fileRef starting at eof
+        close access fileRef
+    on error errMsg
+        display dialog "Error processing file " & workspaceFilePathVerse & ": " & errMsg
+    end try
+end repeat
+
 try
     set fileContent to read POSIX file fortniteBaseWorkspace
     set updatedContent to replaceString(fileContent, "/Users/" & username & "/Documents/", "C:/users/crossover/Documents/")
@@ -791,5 +857,66 @@ end try
     if (rf.existsSync(scriptDestination)) {
         rf.unlinkSync(scriptDestination);
     }
+}
+async function handleFakePath(context: vscode.ExtensionContext, projectName: string, workspaceFilePath: string, basePath: string) {
+    const info = context.globalState.get<FakePathInfo>('fakePathInfo');
+    if (!info) {
+        const originalContent = path.join(basePath, projectName, 'Plugins', projectName, 'Content');
+        const originalWorkspace = workspaceFilePath;
+        const fakeRoot = path.join(basePath, `${projectName}_00fake`);
+        const fakeContent = path.join(fakeRoot, 'Plugins', projectName, 'Content');
+        const fakeWorkspace = path.join(fakeRoot, 'Plugins', projectName, `${projectName}.code-workspace`);
+        await fs.mkdir(fakeContent, { recursive: true });
+        await fs.cp(originalContent, fakeContent, { recursive: true });
+        await fs.mkdir(path.dirname(fakeWorkspace), { recursive: true });
+        await fs.copyFile(originalWorkspace, fakeWorkspace);
+        const newInfo: FakePathInfo = {
+            originalContent,
+            fakeContent,
+            originalWorkspace,
+            fakeWorkspace,
+            projectName,
+        };
+        await context.globalState.update('fakePathInfo', newInfo);
+        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(fakeWorkspace), false);
+        return;
+    }
+    const doc = await vscode.workspace.openTextDocument(info.fakeWorkspace);
+    await modifyWorkspaceFile(doc, info.projectName);
+    setupFakeWatchers(context, info);
+}
+function setupFakeWatchers(context: vscode.ExtensionContext, info: FakePathInfo) {
+    const copyBack = async (src: string) => {
+        const rel = path.relative(info.fakeContent, src);
+        const dest = path.join(info.originalContent, rel);
+        try {
+            const stat = await fs.lstat(src);
+            if (stat.isDirectory()) {
+                await fs.mkdir(dest, { recursive: true });
+            } else {
+                await fs.copyFile(src, dest);
+            }
+        } catch {}
+    };
+    const removeOriginal = async (src: string) => {
+        const rel = path.relative(info.fakeContent, src);
+        const dest = path.join(info.originalContent, rel);
+        await fs.rm(dest, { recursive: true, force: true });
+    };
+    const watcher = rf.watch(info.fakeContent, { recursive: true }, (event, filename) => {
+        if (!filename) { return; }
+        const filePath = path.join(info.fakeContent, filename);
+        if (event === 'rename') {
+            fs.stat(filePath).then(() => copyBack(filePath), () => removeOriginal(filePath));
+        } else if (event === 'change') {
+            copyBack(filePath);
+        }
+    });
+    context.subscriptions.push({ dispose: () => watcher.close() });
+
+    const wsWatcher = rf.watch(info.fakeWorkspace, () => {
+        fs.copyFile(info.fakeWorkspace, info.originalWorkspace).catch(() => {});
+    });
+    context.subscriptions.push({ dispose: () => wsWatcher.close() });
 }
 export function deactivate() {}
