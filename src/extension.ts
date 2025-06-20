@@ -116,7 +116,15 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
     }
 
+    // Get boxes values
+    const verseTheme = vscode.workspace.getConfiguration('verse-macos').get<boolean>('removeVerseDefaultTheme');
+    const verseButton = vscode.workspace.getConfiguration('verse-macos').get<boolean>('fixVerseButton');
+    const rwp = vscode.workspace.getConfiguration('verse-macos').get<boolean>('revertWindowsPathApp');
+
     // Paths related stuff
+    if (verseButton === false) {
+        await unfixVerseButton();
+    }
     const basePath = path.join(userHome, 'Documents', 'Fortnite Projects');
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder) {
@@ -136,11 +144,6 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showErrorMessage(`Unable to open workspace file: ${workspaceFilePath}`);
         return;
     }
-    
-    // Get boxes values
-    const verseTheme = vscode.workspace.getConfiguration('verse-macos').get<boolean>('removeVerseDefaultTheme');
-    const verseButton = vscode.workspace.getConfiguration('verse-macos').get<boolean>('fixVerseButton');
-    const rwp = vscode.workspace.getConfiguration('verse-macos').get<boolean>('revertWindowsPathApp');
 
     // Checking if the Fortnite Projects folder is available
     if (folderUri.startsWith(basePath)) {
