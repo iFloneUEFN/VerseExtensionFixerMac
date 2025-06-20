@@ -1,9 +1,9 @@
 {
- "name": "verse-extension-fixer",
- "displayName": "Verse Extension Fixer (Mac)",
- "description": "Fix various stuff related to Verse programming language on Mac.",
- "version": "0.1.2",
- "publisher": "iflone",
+ "name": "verse-macos",
+ "displayName": "Verse for MacOS",
+ "description": "Brings seamless Verse language support to macOS, addressing compatibility issues and improving the development workflow with UEFN through CrossOver.",
+ "version": "1.0.0",
+ "publisher": "iFlone",
  "author": {
   "name": "iFlone Studios"
  },
@@ -12,7 +12,7 @@
   "vscode": "^1.94.0"
  },
  "repository": {
-    "url": "https://github.com/Florian-Martinez/versemac"
+  "url": "https://github.com/Florian-Martinez/versemac"
  },
  "categories": [
   "Other",
@@ -44,27 +44,27 @@
  "main": "./dist/extension.js",
  "contributes": {
   "configuration": {
-   "title": "Verse Extension Fixer (Mac): Settings",
+   "title": "Verse for MacOS: Settings",
    "properties": {
-    "verseExtensionFixer.bottleName": {
-     "type": "string",
-     "default": "",
-     "description": "Insert your UEFN CrossOver Bottle name here. It will help the extension to scan and find automatically correct paths. Respect uppercase, lowercase, space etc. Eg: You have a bottle named \"My Super Bottle\", you'll put it here as \"My Super Bottle\" and not as \"my_super_bottle\"."
-    },
-    "verseExtensionFixer.removeVerseDefaultTheme": {
+    "verse-macos.removeVerseDefaultTheme": {
      "type": "boolean",
      "default": false,
-     "description": "Allow you to remove the annoying verse dark theme and apply your own."
+     "description": "Remove the default Verse Dark Theme in order to apply your own custom theme."
     },
-    "verseExtensionFixer.fixVerseButtonInUEFN": {
+    "verse-macos.fixVerseButton": {
      "type": "boolean",
      "default": false,
-     "description": "[NEED VISUAL STUDIO INSTALLED TO WORK, PLEASE CHECK INSTRUCTIONS IN THE Q/A TAB SECTION ON THE MARKETPLACE BEFOREHAND.] Allow you to fix the UEFN button within the UEFN app. This create an apple script that always run in the background and startup. The \"hack\" is basically instead of running the vscode.exe when pressing the verse button, its creating a temporary file, the apple script detect it then does the trick."
+     "description": "This option fixes the Verse button functionality inside the UEFN app on macOS. This option works by creating an AppleScript that runs silently in the background and starts up automatically. Instead of launching vscode.exe directly when the Verse button is clicked, it creates a temporary signal file. The AppleScript detects this file and handles the required logic behind the scenes — effectively performing the \"hack\" to bridge macOS with UEFN’s Windows-oriented behavior without even you noticing anything. To delete this, disable the box."
     },
-    "verseExtensionFixer.revertWorkspacesWindowsPaths": {
+    "verse-macos.createFakePath": {
      "type": "boolean",
      "default": false,
-     "description": "Create an app allowing you to revert back the Windows paths from the workspace files after a reboot to avoid restarting UEFN again. This app is not run in the background and must be run manually. You can find it within your Applications folder and pin it to your dock so you can easily access it."
+     "description": "Instead of modifying your original project files directly, this option creates a separate folder and copies your Verse files into it. All Unix path changes are made within this mirrored folder, while the extension ensures that changes still sync back to your original files. This method provides a safer way to work with path conversions and avoids issues (such as the verse explorer not working anymore) that can arise from editing your main files directly. Keeping this option disabled will require you to enable RWP to avoid UEFN crashing on launch."
+    },
+    "verse-macos.revertWindowsPathApp": {
+     "type": "boolean",
+     "default": false,
+     "description": "[Optional] This option createa a helper app designed for situations where you don’t have the \"Create Fake Path\" option enabled and want to avoid restarting UEFN twice after it has already been launched. It allows you to manually revert Unix-style paths back to Windows-style paths in your workspace files after a reboot — helping you skip the need to restart UEFN again. The app does not run in the background and must be launched manually. You'll find it in your Applications folder — consider pinning it to your Dock for quick access."
     }
    }
   }
@@ -85,7 +85,7 @@
  },
  "devDependencies": {
   "@types/mocha": "^10.0.8",
-  "@types/node": "20.x",
+  "@types/node": "^20.19.1",
   "@typescript-eslint/eslint-plugin": "^8.8.1",
   "@typescript-eslint/parser": "^8.8.1",
   "@vscode/test-cli": "^0.0.10",
