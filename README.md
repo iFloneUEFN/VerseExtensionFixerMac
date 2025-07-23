@@ -2,7 +2,9 @@
 # Verse for macOS
 
 
-This tool has been partially used to make my Murder Mystery map, Murdernite! Don't hesitate to check it out https://www.fortnite.com/@iflone/2466-1793-9120.
+This extension has been partially used to make my Murder Mystery map, Murdernite! Don't hesitate to check it out https://www.fortnite.com/@iflone/2466-1793-9120.
+
+
 **Verse for macOS** is a Visual Studio Code extension designed to improve compatibility and fix key issues related to Epic Games' Verse programming language on macOS. With a few essential tweaks, you can run the **Unreal Editor for Fortnite (UEFN)** using **CrossOver** on Mac.
 
 👉 For setup instructions, check out:
